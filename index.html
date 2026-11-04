@@ -1,0 +1,529 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlooketBotX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Titan+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#101522; --panel:#192235; --panel2:#202d43;
+  --blue:#3985ff; --cyan:#55d9ff; --text:#f3f6ff;
+  --muted:#9baac2; --green:#35d69a; --red:#ff647c;
+  --border:#30415c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Nunito,sans-serif;min-height:100vh;
+}
+header{
+  padding:24px 5%;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);
+  background:#141d2d;gap:15px;flex-wrap:wrap;
+}
+.logo{font:32px "Titan One";color:white}
+.logo span{color:var(--cyan)}
+.tag{color:var(--muted);font-size:13px}
+main{max-width:1050px;margin:30px auto;padding:0 18px}
+h2{font:22px "Titan One";margin:0 0 15px}
+h3{margin:0 0 12px}
+.panel{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:15px;padding:22px;margin-bottom:18px;
+}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+label{display:block;font-weight:800;margin:12px 0 6px}
+input,textarea,select{
+  width:100%;background:#101a2b;color:white;
+  border:1px solid var(--border);border-radius:9px;
+  padding:12px;font:inherit;outline:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+textarea{min-height:100px;resize:vertical}
+button{
+  border:0;border-radius:9px;padding:11px 16px;
+  font:800 14px Nunito;cursor:pointer;
+  background:var(--blue);color:white;margin:5px 5px 5px 0;
+}
+button:hover{filter:brightness(1.13)}
+button.secondary{background:var(--panel2);border:1px solid var(--border)}
+button.good{background:#168c68}
+button.danger{background:#a7354b}
+button:disabled{opacity:.45;cursor:not-allowed}
+.small{font-size:12px;color:var(--muted)}
+.status{padding:12px;border-radius:9px;background:#101a2b;margin-top:12px;white-space:pre-wrap}
+.answer{
+  border:1px solid var(--border);border-radius:10px;
+  padding:15px;margin-top:12px;background:#101a2b;
+}
+.answer strong{color:var(--cyan)}
+.statrow{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.stat{background:var(--panel2);padding:10px 14px;border-radius:9px;font-weight:800}
+.choice{display:block;margin:8px 0;padding:10px;background:#101a2b;border-radius:8px}
+hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+details summary{cursor:pointer;font-weight:900}
+a{color:var(--cyan)}
+footer{text-align:center;color:var(--muted);padding:25px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Blooket<span>BotX</span></div>
+    <div class="tag">Your AI-powered question assistant</div>
+  </div>
+  <div class="tag">v0.2 · GitHub Pages edition</div>
+</header>
+
+<main>
+  <div class="statrow">
+    <div class="stat">Saved answers: <span id="memoryCount">0</span>/50</div>
+    <div class="stat">Question bank: <span id="bankCount">0</span></div>
+    <div class="stat">AI providers: <span id="providerCount">0</span> configured</div>
+  </div>
+
+  <section class="panel">
+    <h2>Ask a question</h2>
+    <p class="small">The assistant checks saved answers first, then asks AI, then checks your imported question bank if AI cannot answer.</p>
+
+    <label for="question">Question</label>
+    <textarea id="question" placeholder="Enter your question here..."></textarea>
+
+    <label for="choices">Answer choices (one per line, optional)</label>
+    <textarea id="choices" placeholder="Answer A&#10;Answer B&#10;Answer C&#10;Answer D"></textarea>
+
+    <button id="solveBtn" onclick="solve()">Find answer</button>
+    <button class="secondary" onclick="clearQuestion()">Clear</button>
+
+    <div id="status" class="status">Ready.</div>
+    <div id="answerBox" class="answer" hidden>
+      <div><strong>Suggested answer</strong></div>
+      <div id="answerText" style="font-size:20px;font-weight:900;margin:8px 0"></div>
+      <div class="small" id="answerSource"></div>
+      <hr>
+      <p class="small">Only save this answer after you have verified that it is correct.</p>
+      <button class="good" onclick="confirmCorrect()">Confirm correct & save</button>
+      <button class="danger" onclick="rejectAnswer()">Incorrect</button>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>AI providers</h2>
+      <p class="small">Add your own API keys. Keys are stored in this browser only. Never put personal API keys directly into a public GitHub file.</p>
+
+      <details open>
+        <summary>Google Gemini</summary>
+        <label>Gemini API key</label>
+        <input id="geminiKey" type="password" placeholder="Paste API key">
+        <label>Model</label>
+        <input id="geminiModel" value="gemini-2.5-flash">
+      </details>
+      <hr>
+      <details>
+        <summary>Groq</summary>
+        <label>Groq API key</label>
+        <input id="groqKey" type="password" placeholder="Paste API key">
+        <label>Model</label>
+        <input id="groqModel" value="llama-3.3-70b-versatile">
+      </details>
+      <hr>
+      <details>
+        <summary>OpenRouter</summary>
+        <label>OpenRouter API key</label>
+        <input id="openrouterKey" type="password" placeholder="Paste API key">
+        <label>Model</label>
+        <input id="openrouterModel" value="openrouter/free">
+      </details>
+      <button onclick="saveSettings()">Save provider settings</button>
+      <button class="secondary" onclick="clearSettings()">Clear API keys</button>
+      <div class="small">Fallback order: Gemini → Groq → OpenRouter. Providers are only used when configured. Free plans and model availability can change.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Question memory</h2>
+      <p class="small">Only confirmed-correct answers are saved. Existing entries are never overwritten or removed to make room.</p>
+      <button class="secondary" onclick="exportMemory()">Export saved answers</button>
+      <label for="memoryImport">Import saved answers (JSON)</label>
+      <input type="file" id="memoryImport" accept=".json" onchange="importMemory(event)">
+      <div id="memoryStatus" class="status">Memory ready.</div>
+      <hr>
+      <h3>Saved questions</h3>
+      <div id="memoryList" class="small">No saved answers yet.</div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Question bank</h2>
+    <p class="small">Import a JSON or CSV file containing question-and-answer pairs. Bank answers are used when AI providers cannot return an answer.</p>
+    <label for="bankFile">Import question bank</label>
+    <input type="file" id="bankFile" accept=".json,.csv" onchange="importBank(event)">
+    <button class="secondary" onclick="exportBank()">Export question bank</button>
+    <button class="danger" onclick="clearBank()">Clear question bank</button>
+    <div id="bankStatus" class="status">No import performed yet.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Public source text</h2>
+    <p class="small">Paste publicly accessible or authorised study material here. This can be used as extra context when asking AI. Private game data is not accessed.</p>
+    <textarea id="sourceText" placeholder="Paste public study material, notes, or authorised source text..."></textarea>
+    <label for="sourceUrl">Optional public page URL</label>
+    <input id="sourceUrl" placeholder="https://example.com/public-page">
+    <button class="secondary" onclick="loadPublicPage()">Try to read public page</button>
+    <div id="sourceStatus" class="status">No source loaded.</div>
+  </section>
+</main>
+
+<footer>BlooketBotX · Browser-based assistant · Your saved data stays in this browser</footer>
+
+<script>
+const MEMORY_KEY = "blooketbotx_memory_v2";
+const BANK_KEY = "blooketbotx_bank_v2";
+const SETTINGS_KEY = "blooketbotx_settings_v2";
+
+let pending = null;
+let lastResult = null;
+
+function normalize(s) {
+  return String(s || "").toLowerCase()
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim().replace(/\s+/g, " ");
+}
+function getMemory() {
+  try {
+    const v = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+function getBank() {
+  try {
+    const v = JSON.parse(localStorage.getItem(BANK_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"); }
+  catch { return {}; }
+}
+function refresh() {
+  const m = getMemory(), b = getBank(), s = getSettings();
+  document.getElementById("memoryCount").textContent = m.length;
+  document.getElementById("bankCount").textContent = b.length;
+  document.getElementById("providerCount").textContent =
+    ["gemini","groq","openrouter"].filter(p => s[p+"Key"]).length;
+  document.getElementById("memoryList").innerHTML = m.length
+    ? m.map((x,i) => `<div style="padding:7px;border-bottom:1px solid #30415c">
+        <b>${i+1}. ${escapeHTML(x.question)}</b><br>
+        <span style="color:#55d9ff">${escapeHTML(x.answer)}</span>
+      </div>`).join("")
+    : "No saved answers yet.";
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function setStatus(s) {
+  document.getElementById("status").textContent = s;
+}
+function showAnswer(answer, source, question) {
+  pending = {question, answer};
+  document.getElementById("answerText").textContent = answer;
+  document.getElementById("answerSource").textContent = "Source: " + source;
+  document.getElementById("answerBox").hidden = false;
+}
+function clearQuestion() {
+  document.getElementById("question").value = "";
+  document.getElementById("choices").value = "";
+  document.getElementById("answerBox").hidden = true;
+  pending = null;
+  setStatus("Ready.");
+}
+function findMatch(list, question) {
+  const q = normalize(question);
+  return list.find(x => normalize(x.question) === q);
+}
+
+async function solve() {
+  const question = document.getElementById("question").value.trim();
+  const choices = document.getElementById("choices").value.trim();
+  if (!question) return setStatus("Enter a question first.");
+
+  document.getElementById("solveBtn").disabled = true;
+  document.getElementById("answerBox").hidden = true;
+  pending = null;
+
+  try {
+    // 1. Previously confirmed correct answers.
+    const remembered = findMatch(getMemory(), question);
+    if (remembered) {
+      showAnswer(remembered.answer, "Saved memory (no AI used)", question);
+      return setStatus("Found a saved answer. AI was not used.");
+    }
+
+    // 2. AI providers, in configured fallback order.
+    const settings = getSettings();
+    const source = document.getElementById("sourceText").value.trim();
+    const prompt = makePrompt(question, choices, source);
+    const errors = [];
+
+    for (const provider of ["gemini","groq","openrouter"]) {
+      if (!settings[provider+"Key"]) continue;
+      try {
+        setStatus("Asking " + provider + "...");
+        const answer = await askProvider(provider, settings, prompt);
+        if (answer) {
+          showAnswer(answer, "AI: " + provider, question);
+          return setStatus("AI returned an answer. Verify it before saving.");
+        }
+        errors.push(provider + ": empty response");
+      } catch (e) {
+        errors.push(provider + ": " + e.message);
+      }
+    }
+
+    // 3. Question bank, if AI is not configured or all providers fail.
+    const bankMatch = findMatch(getBank(), question);
+    if (bankMatch) {
+      showAnswer(bankMatch.answer, "Imported question bank", question);
+      return setStatus("Found a question-bank answer.");
+    }
+
+    setStatus("No answer found.\n" +
+      (errors.length ? errors.join("\n") : "No AI provider is configured.") +
+      "\nAdd an API key or import a question bank.");
+  } finally {
+    document.getElementById("solveBtn").disabled = false;
+  }
+}
+
+function makePrompt(question, choices, source) {
+  return `Answer this quiz question as accurately as possible.
+${choices ? "Answer choices:\n"+choices : "There are no supplied choices."}
+${source ? "Additional public/authorised study material:\n"+source.slice(0,12000) : ""}
+Question: ${question}
+
+Return only the answer text. If choices are supplied, return the exact matching choice where possible. Do not guess if the answer cannot be determined.`;
+}
+
+async function askProvider(provider, s, prompt) {
+  const key = s[provider+"Key"];
+  if (provider === "gemini") {
+    const model = s.geminiModel || "gemini-2.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+    const r = await fetch(url, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error?.message || "Gemini request failed");
+    return data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("").trim() || "";
+  }
+
+  const model = provider === "groq"
+    ? (s.groqModel || "llama-3.3-70b-versatile")
+    : (s.openrouterModel || "openrouter/free");
+  const url = provider === "groq"
+    ? "https://api.groq.com/openai/v1/chat/completions"
+    : "https://openrouter.ai/api/v1/chat/completions";
+
+  const r = await fetch(url, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+key
+    },
+    body:JSON.stringify({
+      model,
+      messages:[{role:"user",content:prompt}],
+      temperature:0.1
+    })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error?.message || provider+" request failed");
+  return data.choices?.[0]?.message?.content?.trim() || "";
+}
+
+function confirmCorrect() {
+  if (!pending) return;
+  const memory = getMemory();
+  const existing = findMatch(memory, pending.question);
+
+  if (existing) {
+    setStatus("That question is already saved. Existing entries are never overwritten.");
+    pending = null;
+    return;
+  }
+  if (memory.length >= 50) {
+    setStatus("Memory is full (50/50). No existing entries were removed or overwritten.");
+    pending = null;
+    return;
+  }
+
+  memory.push({
+    question:pending.question,
+    answer:pending.answer,
+    confirmedAt:new Date().toISOString()
+  });
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+  pending = null;
+  refresh();
+  setStatus("Confirmed correct and saved to memory!");
+}
+function rejectAnswer() {
+  pending = null;
+  document.getElementById("answerBox").hidden = true;
+  setStatus("Answer rejected. Nothing was saved.");
+}
+
+function saveSettings() {
+  const s = {
+    geminiKey:document.getElementById("geminiKey").value.trim(),
+    geminiModel:document.getElementById("geminiModel").value.trim(),
+    groqKey:document.getElementById("groqKey").value.trim(),
+    groqModel:document.getElementById("groqModel").value.trim(),
+    openrouterKey:document.getElementById("openrouterKey").value.trim(),
+    openrouterModel:document.getElementById("openrouterModel").value.trim()
+  };
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  refresh();
+  alert("Provider settings saved in this browser.");
+}
+function loadSettingsIntoUI() {
+  const s = getSettings();
+  for (const k of ["geminiKey","geminiModel","groqKey","groqModel","openrouterKey","openrouterModel"]) {
+    if (s[k]) document.getElementById(k).value = s[k];
+  }
+}
+function clearSettings() {
+  if (!confirm("Remove all saved API keys and provider settings?")) return;
+  localStorage.removeItem(SETTINGS_KEY);
+  loadSettingsIntoUI();
+  refresh();
+}
+function download(name, content, type) {
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+}
+function exportMemory() {
+  download("blooketbotx-memory.json", JSON.stringify(getMemory(),null,2), "application/json");
+}
+function exportBank() {
+  download("blooketbotx-question-bank.json", JSON.stringify(getBank(),null,2), "application/json");
+}
+function parseCSV(text) {
+  const rows = [];
+  let row=[], field="", quoted=false;
+  for (let i=0;i<text.length;i++) {
+    const c=text[i], n=text[i+1];
+    if (c === '"' && quoted && n === '"') { field+='"'; i++; }
+    else if (c === '"') quoted=!quoted;
+    else if (c === ',' && !quoted) { row.push(field); field=""; }
+    else if ((c === '\n' || c === '\r') && !quoted) {
+      if (c === '\r' && n === '\n') i++;
+      row.push(field); rows.push(row); row=[]; field="";
+    } else field+=c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+async function importBank(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    let items;
+    if (file.name.toLowerCase().endsWith(".csv")) {
+      const rows = parseCSV(text);
+      const headers = (rows.shift() || []).map(x=>x.trim().toLowerCase());
+      const qi = headers.indexOf("question"), ai = headers.indexOf("answer");
+      if (qi < 0 || ai < 0) throw new Error("CSV needs question and answer columns.");
+      items = rows.map(r=>({question:r[qi],answer:r[ai]}));
+    } else items = JSON.parse(text);
+
+    if (!Array.isArray(items)) throw new Error("Expected a JSON array.");
+    const bank = getBank();
+    let added=0;
+    for (const x of items) {
+      if (!x || typeof x.question !== "string" || typeof x.answer !== "string") continue;
+      if (findMatch(bank, x.question)) continue;
+      bank.push({question:x.question.trim(),answer:x.answer.trim()});
+      added++;
+    }
+    localStorage.setItem(BANK_KEY, JSON.stringify(bank));
+    refresh();
+    document.getElementById("bankStatus").textContent =
+      `Imported ${added} new entries. Total: ${bank.length}.`;
+  } catch(e) {
+    document.getElementById("bankStatus").textContent = "Import failed: "+e.message;
+  }
+  event.target.value="";
+}
+async function importMemory(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const items = JSON.parse(await file.text());
+    if (!Array.isArray(items)) throw new Error("Expected a JSON array.");
+    const memory = getMemory();
+    let added=0;
+    for (const x of items) {
+      if (!x || typeof x.question !== "string" || typeof x.answer !== "string") continue;
+      if (memory.length >= 50) break;
+      if (findMatch(memory,x.question)) continue;
+      memory.push({question:x.question,answer:x.answer,confirmedAt:x.confirmedAt || null});
+      added++;
+    }
+    localStorage.setItem(MEMORY_KEY,JSON.stringify(memory));
+    refresh();
+    document.getElementById("memoryStatus").textContent =
+      `Imported ${added} new entries. Total: ${memory.length}/50. Existing entries were preserved.`;
+  } catch(e) {
+    document.getElementById("memoryStatus").textContent = "Import failed: "+e.message;
+  }
+  event.target.value="";
+}
+function clearBank() {
+  if (!confirm("Clear the imported question bank? Saved memory will not be affected.")) return;
+  localStorage.removeItem(BANK_KEY);
+  refresh();
+  document.getElementById("bankStatus").textContent = "Question bank cleared.";
+}
+async function loadPublicPage() {
+  const url = document.getElementById("sourceUrl").value.trim();
+  if (!url) return document.getElementById("sourceStatus").textContent = "Enter a URL first.";
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("Only HTTP(S) URLs are allowed.");
+    document.getElementById("sourceStatus").textContent = "Trying to fetch public page...";
+    const r = await fetch(parsed.href);
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html,"text/html");
+    doc.querySelectorAll("script,style,noscript,svg").forEach(x=>x.remove());
+    const text = (doc.body?.innerText || doc.body?.textContent || "").trim();
+    if (!text) throw new Error("No readable page text found.");
+    document.getElementById("sourceText").value = text.slice(0,20000);
+    document.getElementById("sourceStatus").textContent =
+      "Public page text loaded. Only visible page text was extracted.";
+  } catch(e) {
+    document.getElementById("sourceStatus").textContent =
+      "Could not read page: "+e.message+
+      "\nThe website may block browser requests (CORS). You can paste authorised text manually.";
+  }
+}
+
+loadSettingsIntoUI();
+refresh();
+</script>
+</body>
+</html>
